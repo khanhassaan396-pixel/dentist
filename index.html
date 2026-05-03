@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SmileCare Dental — AI Voice Receptionist</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --green-dark: #0b2e21;
+    --green-mid: #1a5c3a;
+    --green-btn: #166534;
+    --green-accent: #22c55e;
+    --green-light: #86efac;
+    --green-text: #6db88a;
+    --text-primary: #e8f5ee;
+    --text-muted: #94a3b8;
+    --surface: rgba(255,255,255,0.05);
+    --border: rgba(255,255,255,0.1);
+    --border-light: rgba(255,255,255,0.07);
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+
+  html, body {
+    height: 100%;
+    font-family: 'DM Sans', sans-serif;
+    background: #071a12;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .app {
+    width: 100%;
+    max-width: 860px;
+    background: var(--green-dark);
+    border-radius: 20px;
+    border: 0.5px solid var(--border);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── TOP BAR ── */
+  .topbar {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 24px;
+    border-bottom: 0.5px solid var(--border-light);
+    background: rgba(0,0,0,0.2);
+  }
+  .logo {
+    width: 42px; height: 42px;
+    background: var(--green-mid);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; flex-shrink: 0;
+  }
+  .clinic-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 18px; font-weight: 500;
+    color: var(--text-primary); line-height: 1.2;
+  }
+  .clinic-sub { font-size: 11px; color: var(--green-text); font-weight: 300; margin-top: 2px; }
+  .live-pill {
+    margin-left: auto;
+    background: rgba(34,197,94,0.12);
+    border: 0.5px solid var(--green-accent);
+    border-radius: 20px; padding: 4px 12px;
+    font-size: 11px; color: var(--green-light);
+    display: flex; align-items: center; gap: 6px; flex-shrink: 0;
+  }
+  .live-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--green-accent);
+    animation: blink 2s infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  /* ── MAIN LAYOUT ── */
+  .main {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    min-height: 560px;
+  }
+
+  /* ── LEFT: VOICE PANEL ── */
+  .voice-panel {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: space-between;
+    padding: 32px 24px 20px;
+    border-right: 0.5px solid var(--border-light);
+    gap: 18px;
+  }
+
+  .avatar-section { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .avatar-ring {
+    width: 120px; height: 120px; border-radius: 50%;
+    border: 1.5px solid rgba(34,197,94,0.2);
+    display: flex; align-items: center; justify-content: center;
+    transition: border-color 0.3s;
+  }
+  .avatar-ring.speaking {
+    border-color: var(--green-accent);
+    animation: ringPulse 1.5s ease-in-out infinite;
+  }
+  @keyframes ringPulse {
+    0%,100%{ box-shadow: 0 0 0 0 rgba(34,197,94,0.3); }
+    50%{ box-shadow: 0 0 0 14px rgba(34,197,94,0); }
+  }
+  .avatar-inner {
+    width: 92px; height: 92px; border-radius: 50%;
+    background: var(--green-mid);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 42px;
+  }
+  .aria-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 21px; font-weight: 500; text-align: center;
+  }
+  .aria-role { font-size: 11px; color: var(--green-text); text-align: center; font-weight: 300; margin-top: 2px; }
+
+  /* wave */
+  .wave { display: flex; align-items: center; gap: 3px; height: 24px; }
+  .wave span {
+    width: 3px; border-radius: 2px; background: var(--green-accent);
+    animation: wv 0.9s ease-in-out infinite;
+  }
+  .wave span:nth-child(1){ height:6px; animation-delay:0s }
+  .wave span:nth-child(2){ height:16px; animation-delay:0.1s }
+  .wave span:nth-child(3){ height:22px; animation-delay:0.2s }
+  .wave span:nth-child(4){ height:16px; animation-delay:0.3s }
+  .wave span:nth-child(5){ height:8px; animation-delay:0.4s }
+  .wave span:nth-child(6){ height:20px; animation-delay:0.15s }
+  .wave span:nth-child(7){ height:12px; animation-delay:0.25s }
+  @keyframes wv { 0%,100%{transform:scaleY(0.35)} 50%{transform:scaleY(1)} }
+  .wave.hidden { visibility: hidden; }
+
+  /* aria speech */
+  .speech-box {
+    width: 100%;
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    min-height: 80px;
+  }
+  .speech-label { font-size: 10px; color: var(--green-text); letter-spacing: 0.8px; text-transform: uppercase; font-weight: 500; margin-bottom: 6px; }
+  .speech-text { font-size: 13px; color: #c8e6d0; line-height: 1.6; font-style: italic; font-weight: 300; }
+
+  /* user listening */
+  .user-box {
+    width: 100%;
+    background: rgba(255,255,255,0.03);
+    border: 0.5px solid var(--border-light);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    min-height: 44px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .user-label { font-size: 10px; color: var(--text-muted); letter-spacing: 0.8px; text-transform: uppercase; font-weight: 500; flex-shrink: 0; }
+  .user-text { font-size: 13px; color: #cbd5e1; font-style: italic; font-weight: 300; }
+  .dots { display: none; gap: 4px; align-items: center; }
+  .dots span {
+    width: 5px; height: 5px; background: #60a5fa; border-radius: 50%;
+    animation: bd 1s ease-in-out infinite;
+  }
+  .dots span:nth-child(2){ animation-delay:0.15s }
+  .dots span:nth-child(3){ animation-delay:0.3s }
+  @keyframes bd { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-6px)} }
+
+  /* transfer */
+  .transfer-strip {
+    display: none; width: 100%;
+    background: rgba(234,179,8,0.1);
+    border: 0.5px solid rgba(234,179,8,0.4);
+    border-radius: var(--radius-sm);
+    padding: 9px 14px;
+    font-size: 12px; color: #fde68a;
+    align-items: center; gap: 8px;
+  }
+  .transfer-strip.show { display: flex; }
+
+  /* controls */
+  .controls {
+    display: flex; align-items: center; justify-content: center;
+    gap: 14px;
+  }
+  .btn-mic {
+    width: 62px; height: 62px; border-radius: 50%;
+    border: none; cursor: pointer;
+    background: var(--green-mid);
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+    outline: none;
+  }
+  .btn-mic:hover { background: var(--green-btn); transform: scale(1.05); }
+  .btn-mic.listening {
+    background: #052e16;
+    border: 2px solid var(--green-accent);
+    animation: micGlow 1.5s ease-in-out infinite;
+  }
+  @keyframes micGlow {
+    0%,100%{ box-shadow:0 0 0 0 rgba(34,197,94,0.4) }
+    50%{ box-shadow:0 0 0 10px rgba(34,197,94,0) }
+  }
+  .btn-mic svg { width: 26px; height: 26px; stroke: white; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .btn-mic.listening svg { stroke: var(--green-accent); }
+
+  .btn-icon {
+    width: 44px; height: 44px; border-radius: 50%;
+    cursor: pointer; border: 0.5px solid var(--border);
+    background: transparent;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s; outline: none;
+  }
+  .btn-icon:hover { background: var(--surface); }
+  .btn-icon svg { width: 18px; height: 18px; stroke: var(--text-muted); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .btn-end { border-color: rgba(239,68,68,0.4); }
+  .btn-end:hover { background: rgba(239,68,68,0.15); }
+  .btn-end svg { stroke: #f87171; }
+  .btn-muted svg { stroke: #f87171; }
+
+  .hint { font-size: 11px; color: rgba(255,255,255,0.22); text-align: center; font-weight: 300; padding-bottom: 2px; }
+
+  /* ── RIGHT: BOOKING PANEL ── */
+  .booking-panel {
+    display: flex; flex-direction: column;
+    padding: 28px 24px;
+    gap: 20px;
+    overflow-y: auto;
+  }
+
+  .booking-header {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .booking-icon {
+    width: 34px; height: 34px; border-radius: 8px;
+    background: var(--green-mid);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+  .booking-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 18px; font-weight: 500; color: var(--text-primary);
+  }
+  .booking-sub { font-size: 11px; color: var(--green-text); margin-top: 2px; }
+
+  /* step tabs */
+  .steps {
+    display: flex; gap: 4px;
+  }
+  .step-tab {
+    flex: 1; height: 3px; border-radius: 2px;
+    background: var(--border);
+    transition: background 0.3s;
+  }
+  .step-tab.active { background: var(--green-accent); }
+  .step-tab.done { background: var(--green-mid); }
+
+  /* form sections */
+  .form-section { display: flex; flex-direction: column; gap: 12px; }
+  .section-title {
+    font-size: 11px; font-weight: 500; color: var(--green-text);
+    letter-spacing: 0.8px; text-transform: uppercase;
+    padding-bottom: 6px;
+    border-bottom: 0.5px solid var(--border-light);
+  }
+
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-size: 12px; color: var(--text-muted); font-weight: 400; }
+  .field input,
+  .field select {
+    background: rgba(255,255,255,0.06);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    font-size: 13px;
+    color: var(--text-primary);
+    font-family: 'DM Sans', sans-serif;
+    outline: none;
+    transition: border-color 0.2s, background 0.2s;
+    width: 100%;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+  .field input::placeholder { color: rgba(255,255,255,0.25); }
+  .field input:focus,
+  .field select:focus {
+    border-color: rgba(34,197,94,0.5);
+    background: rgba(255,255,255,0.09);
+  }
+  .field select option { background: #0b2e21; color: var(--text-primary); }
+  .field select { cursor: pointer; }
+
+  .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .field-note { font-size: 11px; color: rgba(255,255,255,0.25); margin-top: 3px; }
+
+  /* doctor cards */
+  .doctor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .doctor-card {
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: transparent;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .doctor-card:hover { background: var(--surface); border-color: rgba(34,197,94,0.3); }
+  .doctor-card.selected { background: rgba(34,197,94,0.08); border-color: var(--green-accent); }
+  .doc-avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 17px; flex-shrink: 0;
+  }
+  .doc-name { font-size: 12px; font-weight: 500; color: var(--text-primary); line-height: 1.3; }
+  .doc-spec { font-size: 10px; color: var(--green-text); margin-top: 1px; }
+
+  /* time slots */
+  .time-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; }
+  .time-slot {
+    border: 0.5px solid var(--border);
+    border-radius: 6px; padding: 7px 4px;
+    text-align: center; cursor: pointer;
+    font-size: 12px; color: var(--text-muted);
+    background: transparent;
+    transition: all 0.18s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .time-slot:hover { background: var(--surface); color: var(--text-primary); border-color: rgba(34,197,94,0.3); }
+  .time-slot.selected { background: rgba(34,197,94,0.1); border-color: var(--green-accent); color: var(--green-light); }
+  .time-slot.taken { opacity: 0.3; cursor: not-allowed; pointer-events: none; text-decoration: line-through; }
+
+  /* submit */
+  .submit-btn {
+    width: 100%; padding: 12px;
+    background: var(--green-mid);
+    border: none; border-radius: var(--radius-sm);
+    color: var(--green-light);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px; font-weight: 500;
+    cursor: pointer; transition: all 0.2s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .submit-btn:hover { background: var(--green-btn); }
+  .submit-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .submit-btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* success */
+  .success-card {
+    display: none; flex-direction: column; align-items: center;
+    gap: 14px; text-align: center; padding: 20px 10px;
+  }
+  .success-card.show { display: flex; }
+  .success-icon { font-size: 48px; }
+  .success-title { font-family: 'Cormorant Garamond',serif; font-size: 20px; font-weight:500; color: var(--text-primary); }
+  .success-detail { font-size: 13px; color: var(--green-text); line-height: 1.7; }
+  .success-id {
+    background: var(--surface); border: 0.5px solid var(--border);
+    border-radius: 8px; padding: 10px 18px;
+    font-size: 13px; color: var(--text-muted);
+  }
+  .success-id strong { color: var(--green-light); font-weight: 500; }
+  .reset-btn {
+    background: transparent; border: 0.5px solid var(--border);
+    border-radius: var(--radius-sm); padding: 8px 20px;
+    color: var(--text-muted); font-size: 13px;
+    font-family: 'DM Sans', sans-serif; cursor: pointer;
+    transition: all 0.2s;
+  }
+  .reset-btn:hover { background: var(--surface); color: var(--text-primary); }
+
+  /* validation error */
+  .err { font-size: 11px; color: #f87171; margin-top: 3px; display: none; }
+  .field.invalid input, .field.invalid select { border-color: #f87171; }
+  .field.invalid .err { display: block; }
+
+  @media (max-width: 680px) {
+    .main { grid-template-columns: 1fr; }
+    .voice-panel { border-right: none; border-bottom: 0.5px solid var(--border-light); }
+    .doctor-grid { grid-template-columns: 1fr 1fr; }
+    .time-grid { grid-template-columns: repeat(3,1fr); }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="logo">🦷</div>
+    <div>
+      <div class="clinic-name">SmileCare Dental Clinic</div>
+      <div class="clinic-sub">AI Receptionist — Voice &amp; Booking</div>
+    </div>
+    <div class="live-pill"><div class="live-dot"></div> Live</div>
+  </div>
+
+  <div class="main">
+
+    <!-- ════ LEFT: VOICE PANEL ════ -->
+    <div class="voice-panel">
+
+      <div class="avatar-section">
+        <div class="avatar-ring" id="avatarRing">
+          <div class="avatar-inner">👩‍⚕️</div>
+        </div>
+        <div class="wave hidden" id="waveEl">
+          <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+        </div>
+        <div class="aria-name">Aria</div>
+        <div class="aria-role">AI Receptionist · SmileCare Dental</div>
+      </div>
+
+      <!-- Aria speech -->
+      <div class="speech-box">
+        <div class="speech-label">Aria is saying</div>
+        <div class="speech-text" id="ariaText">Hello! Welcome to SmileCare Dental. Press the microphone to start our call — I'm here to help you with appointments, questions, pricing and more!</div>
+      </div>
+
+      <!-- User speech -->
+      <div class="user-box">
+        <div class="user-label">You</div>
+        <div class="dots" id="listeningDots"><span></span><span></span><span></span></div>
+        <div class="user-text" id="userText">—</div>
+      </div>
+
+      <!-- Transfer strip -->
+      <div class="transfer-strip" id="transferStrip">
+        ⟳ Transferring to a staff member — someone will follow up with you shortly.
+      </div>
+
+      <!-- Controls -->
+      <div class="controls">
+        <button class="btn-icon" id="btnVol" title="Toggle speaker" onclick="toggleMute()">
+          <svg id="volSvg" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"/></svg>
+        </button>
+
+        <button class="btn-mic" id="btnMic" title="Speak" onclick="toggleMic()">
+          <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+        </button>
+
+        <button class="btn-icon btn-end" title="End call" onclick="endCall()">
+          <svg viewBox="0 0 24 24"><path d="M10.68 13.31a16 16 0 003.41 2.6l1.27-1.27a2 2 0 012.11-.45c1.12.45 2.3.75 3.53.75a2 2 0 012 2v3.5a2 2 0 01-2 2C7.61 22.5 2 16.89 2 4.5a2 2 0 012-2H7.5a2 2 0 012 2c0 1.25.26 2.45.75 3.57a2 2 0 01-.45 2.11l-1.12 1.13z"/><line x1="23" y1="1" x2="1" y2="23"/></svg>
+        </button>
+      </div>
+
+      <div class="hint" id="hintText">Tap the mic to speak with Aria</div>
+
+    </div><!-- /voice-panel -->
+
+
+    <!-- ════ RIGHT: BOOKING PANEL ════ -->
+    <div class="booking-panel">
+
+      <div class="booking-header">
+        <div class="booking-icon">📅</div>
+        <div>
+          <div class="booking-title">Book an Appointment</div>
+          <div class="booking-sub">Fill in the details below to confirm your visit</div>
+        </div>
+      </div>
+
+      <!-- Step indicator -->
+      <div class="steps">
+        <div class="step-tab active" id="step1tab"></div>
+        <div class="step-tab" id="step2tab"></div>
+        <div class="step-tab" id="step3tab"></div>
+      </div>
+
+      <!-- BOOKING FORM -->
+      <div id="bookingForm">
+
+        <!-- Section 1: Patient info -->
+        <div class="form-section">
+          <div class="section-title">Patient information</div>
+
+          <div class="row-2">
+            <div class="field" id="f-fname">
+              <label for="fname">First name *</label>
+              <input type="text" id="fname" placeholder="e.g. Sarah" autocomplete="given-name" />
+              <span class="err">Please enter your first name</span>
+            </div>
+            <div class="field" id="f-lname">
+              <label for="lname">Last name *</label>
+              <input type="text" id="lname" placeholder="e.g. Johnson" autocomplete="family-name" />
+              <span class="err">Please enter your last name</span>
+            </div>
+          </div>
+
+          <div class="row-2">
+            <div class="field" id="f-phone">
+              <label for="phone">Phone number *</label>
+              <input type="tel" id="phone" placeholder="(212) 555-0100" autocomplete="tel" />
+              <span class="err">Enter a valid phone number</span>
+            </div>
+            <div class="field" id="f-email">
+              <label for="email">Email address</label>
+              <input type="email" id="email" placeholder="you@email.com" autocomplete="email" />
+              <span class="err" style="display:none"></span>
+            </div>
+          </div>
+
+          <div class="row-2">
+            <div class="field" id="f-ptype">
+              <label for="ptype">Patient type *</label>
+              <select id="ptype">
+                <option value="">Select...</option>
+                <option value="new">New patient</option>
+                <option value="returning">Returning patient</option>
+              </select>
+              <span class="err">Please select patient type</span>
+            </div>
+            <div class="field" id="f-insurance">
+              <label for="insurance">Insurance provider</label>
+              <select id="insurance">
+                <option value="">None / Self-pay</option>
+                <option>Delta Dental</option>
+                <option>Cigna PPO</option>
+                <option>Aetna</option>
+                <option>MetLife</option>
+                <option>United Healthcare</option>
+                <option>Blue Cross Blue Shield</option>
+                <option>Other</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 2: Service & Doctor -->
+        <div class="form-section" style="margin-top:16px">
+          <div class="section-title">Service &amp; doctor</div>
+
+          <div class="field" id="f-service">
+            <label for="service">Service needed *</label>
+            <select id="service">
+              <option value="">Choose a service...</option>
+              <option>Routine cleaning &amp; exam</option>
+              <option>Teeth whitening</option>
+              <option>Filling / cavity treatment</option>
+              <option>Crown or bridge</option>
+              <option>Dental implant consultation</option>
+              <option>Clear aligners / braces consultation</option>
+              <option>Root canal therapy</option>
+              <option>Pediatric dentistry</option>
+              <option>Emergency visit</option>
+              <option>Sedation dentistry consultation</option>
+              <option>Other</option>
+            </select>
+            <span class="err">Please select a service</span>
+          </div>
+
+          <div class="field" id="f-doctor">
+            <label>Select a doctor *</label>
+            <div class="doctor-grid">
+              <div class="doctor-card" onclick="selectDoctor(this,'Dr. Emily Carter')" data-doctor="Dr. Emily Carter">
+                <div class="doc-avatar" style="background:rgba(34,197,94,0.12)">👩‍⚕️</div>
+                <div>
+                  <div class="doc-name">Dr. Emily Carter</div>
+                  <div class="doc-spec">General &amp; Cosmetic</div>
+                </div>
+              </div>
+              <div class="doctor-card" onclick="selectDoctor(this,'Dr. James Obi')" data-doctor="Dr. James Obi">
+                <div class="doc-avatar" style="background:rgba(59,130,246,0.12)">👨‍⚕️</div>
+                <div>
+                  <div class="doc-name">Dr. James Obi</div>
+                  <div class="doc-spec">Orthodontics</div>
+                </div>
+              </div>
+              <div class="doctor-card" onclick="selectDoctor(this,'Dr. Sofia Reyes')" data-doctor="Dr. Sofia Reyes">
+                <div class="doc-avatar" style="background:rgba(168,85,247,0.12)">👩‍⚕️</div>
+                <div>
+                  <div class="doc-name">Dr. Sofia Reyes</div>
+                  <div class="doc-spec">Pediatric &amp; Implants</div>
+                </div>
+              </div>
+              <div class="doctor-card" onclick="selectDoctor(this,'Dr. Marcus Lee')" data-doctor="Dr. Marcus Lee">
+                <div class="doc-avatar" style="background:rgba(234,179,8,0.12)">👨‍⚕️</div>
+                <div>
+                  <div class="doc-name">Dr. Marcus Lee</div>
+                  <div class="doc-spec">Endodontics</div>
+                </div>
+              </div>
+            </div>
+            <input type="hidden" id="doctorVal" value="" />
+            <span class="err" id="doctorErr" style="display:none">Please select a doctor</span>
+          </div>
+        </div>
+
+        <!-- Section 3: Date & Time -->
+        <div class="form-section" style="margin-top:16px">
+          <div class="section-title">Date &amp; time</div>
+
+          <div class="row-2">
+            <div class="field" id="f-date">
+              <label for="apptDate">Preferred date *</label>
+              <input type="date" id="apptDate" />
+              <span class="err">Please pick a date</span>
+            </div>
+            <div class="field">
+              <label>Available time slots *</label>
+              <div class="time-grid" id="timeGrid">
+                <div class="time-slot" onclick="selectTime(this)">8:00 AM</div>
+                <div class="time-slot" onclick="selectTime(this)">9:00 AM</div>
+                <div class="time-slot taken">9:30 AM</div>
+                <div class="time-slot" onclick="selectTime(this)">10:00 AM</div>
+                <div class="time-slot taken">10:30 AM</div>
+                <div class="time-slot" onclick="selectTime(this)">11:00 AM</div>
+                <div class="time-slot" onclick="selectTime(this)">1:00 PM</div>
+                <div class="time-slot" onclick="selectTime(this)">2:00 PM</div>
+                <div class="time-slot taken">2:30 PM</div>
+                <div class="time-slot" onclick="selectTime(this)">3:30 PM</div>
+                <div class="time-slot" onclick="selectTime(this)">4:00 PM</div>
+                <div class="time-slot" onclick="selectTime(this)">5:00 PM</div>
+              </div>
+              <input type="hidden" id="timeVal" value="" />
+              <span class="err" id="timeErr" style="display:none">Please select a time slot</span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="notes">Additional notes</label>
+            <input type="text" id="notes" placeholder="e.g. allergies, anxiety, specific concerns..." />
+            <div class="field-note">Optional — helps our team prepare for your visit</div>
+          </div>
+        </div>
+
+        <!-- Submit -->
+        <button class="submit-btn" onclick="submitBooking()" style="margin-top:20px">
+          <svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          Confirm appointment
+        </button>
+
+      </div><!-- /bookingForm -->
+
+      <!-- SUCCESS STATE -->
+      <div class="success-card" id="successCard">
+        <div class="success-icon">🎉</div>
+        <div class="success-title">Appointment Confirmed!</div>
+        <div class="success-detail" id="successDetail">—</div>
+        <div class="success-id" id="successId">—</div>
+        <button class="reset-btn" onclick="resetForm()">Book another appointment</button>
+      </div>
+
+    </div><!-- /booking-panel -->
+
+  </div><!-- /main -->
+
+</div><!-- /app -->
+
+<script>
+// ─── VOICE ENGINE ───────────────────────────────────────────────
+const synth = window.speechSynthesis;
+let muted = false;
+let listening = false;
+let recognition = null;
+let demoIdx = 0;
+
+const KB = [
+  { p:['hello','hi','hey','good morning','good afternoon'], r:"Hello! Welcome to SmileCare Dental. I'm Aria, your AI receptionist. I can help you with appointments, services, insurance, pricing, and more. What can I do for you today?" },
+  { p:['hour','open','close','when','available','saturday','weekend'], r:"We're open Monday through Friday, 8 AM to 6 PM, and Saturdays from 9 AM to 3 PM. We're closed on Sundays and public holidays. Emergency slots are available daily — just let us know." },
+  { p:['book','appoint','schedule','reserve','visit','come in','see a dentist'], r:"I'd love to get you booked! Please fill in the booking form on the right — enter your name, choose a doctor, pick a date and a time slot, and confirm. It only takes a moment!" },
+  { p:['emergency','urgent','pain','toothache','broken','cracked','knocked','bleeding','swollen','abscess'], r:"That sounds urgent! Please call our emergency line immediately at 212-555-0190. A knocked-out tooth can often be saved within the first hour, so please don't wait!" },
+  { p:['service','offer','treatment','procedure','what do you'], r:"We offer general cleanings, fillings, crowns, implants, teeth whitening, veneers, clear aligners, pediatric dentistry, root canals, and sedation dentistry. Would you like to know more about a specific service?" },
+  { p:['insurance','cover','plan','delta','cigna','aetna','united','blue cross','ppo'], r:"We accept Delta Dental, Cigna PPO, Aetna, MetLife, United Healthcare, and Blue Cross Blue Shield. We also offer CareCredit and flexible payment plans for uninsured patients." },
+  { p:['cost','price','how much','fee','charge','afford'], r:"A routine cleaning runs about 150 to 200 dollars. Teeth whitening starts at 350. Fillings range from 120 to 300. Crowns are 900 to 1500, and implants start at 2500. Insurance typically covers 70 to 100 percent of preventive care." },
+  { p:['where','location','address','direction','park','map','street'], r:"We're at 245 Park Avenue, Suite 1200, New York, NY 10167 — Midtown Manhattan. Take the 4, 5, or 6 train to Grand Central, just a 3-minute walk. Parking is available at 240 Park Avenue Garage." },
+  { p:['new patient','first time','first visit','first appointment','never been'], r:"Welcome! For your first visit bring a photo ID, insurance card, any recent X-rays, and a list of medications. Arrive 15 minutes early or we can send digital forms in advance. Want to book now?" },
+  { p:['cancel','reschedule','change','postpone','miss'], r:"No problem! We ask for at least 24 hours notice to avoid a cancellation fee. I can flag your request for the front desk team to follow up with you shortly." },
+  { p:['whiten','white teeth','bright','bleach','stain'], r:"Our in-office whitening brightens teeth 4 to 8 shades in a single visit, starting at $350. We also offer custom take-home kits. Shall I book a whitening consultation for you?" },
+  { p:['implant','missing tooth','replace','false tooth'], r:"Dental implants are permanent replacements that look completely natural, starting at $2500 per tooth. We offer a free implant consultation — want me to get you booked?" },
+];
+
+const demoQs = [
+  "Hello, what are your opening hours?",
+  "I'd like to book an appointment",
+  "Do you accept Delta Dental insurance?",
+  "How much does teeth whitening cost?",
+  "I have a bad toothache, it's an emergency!",
+  "Where are you located?",
+  "What services do you offer?",
+  "Can I reschedule my appointment?",
+  "Do you see new patients?",
+  "How much is an implant?",
+];
+
+function setAriaText(txt) {
+  document.getElementById('ariaText').textContent = txt;
+}
+
+function setSpeaking(on) {
+  const ring = document.getElementById('avatarRing');
+  const wave = document.getElementById('waveEl');
+  ring.className = 'avatar-ring' + (on ? ' speaking' : '');
+  wave.className = 'wave' + (on ? '' : ' hidden');
+}
+
+function speak(text, cb) {
+  synth.cancel();
+  if (muted) { setSpeaking(false); if (cb) setTimeout(cb,50); return; }
+  const u = new SpeechSynthesisUtterance(text);
+  u.rate = 0.93; u.pitch = 1.06; u.volume = 1;
+  const voices = synth.getVoices();
+  const v = voices.find(x => /samantha|karen|fiona|victoria/i.test(x.name))
+         || voices.find(x => x.lang === 'en-US')
+         || voices.find(x => x.lang.startsWith('en'));
+  if (v) u.voice = v;
+  u.onstart = () => setSpeaking(true);
+  u.onend = () => { setSpeaking(false); if (cb) cb(); };
+  u.onerror = () => { setSpeaking(false); if (cb) cb(); };
+  synth.speak(u);
+}
+
+function matchKB(text) {
+  const low = text.toLowerCase();
+  for (const item of KB) {
+    if (item.p.some(p => low.includes(p))) return item.r;
+  }
+  return null;
+}
+
+function handleUserInput(text) {
+  document.getElementById('listeningDots').style.display = 'none';
+  document.getElementById('userText').style.display = '';
+  document.getElementById('userText').textContent = text;
+  document.getElementById('transferStrip').classList.remove('show');
+
+  const resp = matchKB(text);
+  if (resp) {
+    setAriaText(resp);
+    speak(resp);
+    // if booking intent, highlight the form
+    if (/book|appoint|schedule|reserve|visit|come in/i.test(text)) {
+      document.getElementById('fname').focus();
+    }
+  } else {
+    const fallback = "That's a great question. I want to make sure you get the most accurate answer, so I'm transferring you to one of our team members who will follow up with you shortly.";
+    setAriaText(fallback);
+    speak(fallback);
+    document.getElementById('transferStrip').classList.add('show');
+  }
+}
+
+function toggleMic() {
+  if (listening) { stopListen(); return; }
+  if (!window.SpeechRecognition && !window.webkitSpeechRecognition) {
+    runDemo(); return;
+  }
+  startListen();
+}
+
+function startListen() {
+  synth.cancel(); setSpeaking(false);
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SR();
+  recognition.lang = 'en-US';
+  recognition.interimResults = true;
+  recognition.continuous = false;
+
+  recognition.onstart = () => {
+    listening = true;
+    document.getElementById('btnMic').classList.add('listening');
+    document.getElementById('listeningDots').style.display = 'flex';
+    document.getElementById('userText').style.display = 'none';
+    document.getElementById('userText').textContent = '';
+    document.getElementById('hintText').textContent = 'Listening… tap mic when done';
+  };
+  recognition.onresult = e => {
+    let final = '', interim = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) final += e.results[i][0].transcript;
+      else interim += e.results[i][0].transcript;
+    }
+    const shown = final || interim;
+    if (shown) {
+      document.getElementById('listeningDots').style.display = 'none';
+      document.getElementById('userText').style.display = '';
+      document.getElementById('userText').textContent = shown;
+    }
+    if (final) { stopListen(); handleUserInput(final.trim()); }
+  };
+  recognition.onerror = e => {
+    stopListen();
+    if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+      setAriaText("Microphone access was denied. Running in demo mode — watch me answer sample questions!");
+      runDemo();
+    }
+  };
+  recognition.onend = () => { stopListen(); };
+  recognition.start();
+}
+
+function stopListen() {
+  listening = false;
+  document.getElementById('btnMic').classList.remove('listening');
+  document.getElementById('hintText').textContent = 'Tap the mic to speak with Aria';
+  if (recognition) { try { recognition.stop(); } catch(e){} recognition = null; }
+}
+
+function runDemo() {
+  const q = demoQs[demoIdx % demoQs.length]; demoIdx++;
+  listening = true;
+  document.getElementById('btnMic').classList.add('listening');
+  document.getElementById('listeningDots').style.display = 'flex';
+  document.getElementById('userText').style.display = 'none';
+  document.getElementById('hintText').textContent = 'Demo mode — simulating patient…';
+  setTimeout(() => {
+    listening = false;
+    document.getElementById('btnMic').classList.remove('listening');
+    document.getElementById('hintText').textContent = 'Tap the mic to speak with Aria';
+    handleUserInput(q);
+  }, 2000);
+}
+
+function endCall() {
+  synth.cancel(); stopListen(); setSpeaking(false);
+  document.getElementById('transferStrip').classList.remove('show');
+  document.getElementById('userText').textContent = '—';
+  const bye = "Thank you for calling SmileCare Dental! Have a wonderful day and we look forward to seeing your smile soon.";
+  setAriaText(bye);
+  speak(bye);
+  document.getElementById('hintText').textContent = 'Call ended · Tap mic to call again';
+}
+
+function toggleMute() {
+  muted = !muted;
+  const btn = document.getElementById('btnVol');
+  btn.className = 'btn-icon' + (muted ? ' btn-muted' : '');
+  document.getElementById('volSvg').innerHTML = muted
+    ? '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>'
+    : '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07"/>';
+  if (muted) synth.cancel();
+}
+
+// ─── BOOKING FORM ────────────────────────────────────────────────
+let selectedDoctor = '';
+let selectedTime = '';
+
+// Set min date to today
+const today = new Date();
+const yyyy = today.getFullYear();
+const mm = String(today.getMonth()+1).padStart(2,'0');
+const dd = String(today.getDate()).padStart(2,'0');
+document.getElementById('apptDate').min = `${yyyy}-${mm}-${dd}`;
+document.getElementById('apptDate').value = `${yyyy}-${mm}-${dd}`;
+
+// Update step indicators based on scroll / interaction
+function updateSteps() {
+  const s = document.getElementById('service').value;
+  const d = selectedDoctor;
+  const t = selectedTime;
+  const dt = document.getElementById('apptDate').value;
+
+  document.getElementById('step1tab').className = 'step-tab active';
+  document.getElementById('step2tab').className = 'step-tab' + (s ? ' active' : '');
+  document.getElementById('step3tab').className = 'step-tab' + (t && dt ? ' active' : '');
+}
+
+document.getElementById('service').addEventListener('change', updateSteps);
+document.getElementById('apptDate').addEventListener('change', updateSteps);
+
+function selectDoctor(el, name) {
+  document.querySelectorAll('.doctor-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedDoctor = name;
+  document.getElementById('doctorVal').value = name;
+  document.getElementById('doctorErr').style.display = 'none';
+  document.getElementById('f-doctor').classList.remove('invalid');
+  updateSteps();
+}
+
+function selectTime(el) {
+  if (el.classList.contains('taken')) return;
+  document.querySelectorAll('.time-slot').forEach(s => s.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedTime = el.textContent.trim();
+  document.getElementById('timeVal').value = selectedTime;
+  document.getElementById('timeErr').style.display = 'none';
+  updateSteps();
+}
+
+function validateField(id, condition) {
+  const el = document.getElementById('f-' + id);
+  if (!el) return condition;
+  if (!condition) { el.classList.add('invalid'); return false; }
+  el.classList.remove('invalid'); return true;
+}
+
+function submitBooking() {
+  const fname = document.getElementById('fname').value.trim();
+  const lname = document.getElementById('lname').value.trim();
+  const phone = document.getElementById('phone').value.trim();
+  const ptype = document.getElementById('ptype').value;
+  const service = document.getElementById('service').value;
+  const apptDate = document.getElementById('apptDate').value;
+
+  let ok = true;
+  ok = validateField('fname', fname.length > 0) && ok;
+  ok = validateField('lname', lname.length > 0) && ok;
+  ok = validateField('phone', phone.length >= 7) && ok;
+  ok = validateField('ptype', ptype !== '') && ok;
+  ok = validateField('service', service !== '') && ok;
+  ok = validateField('date', apptDate !== '') && ok;
+
+  // doctor
+  if (!selectedDoctor) {
+    document.getElementById('f-doctor').classList.add('invalid');
+    document.getElementById('doctorErr').style.display = 'block';
+    ok = false;
+  }
+  // time
+  if (!selectedTime) {
+    document.getElementById('timeErr').style.display = 'block';
+    ok = false;
+  }
+
+  if (!ok) {
+    const msg = "Please complete all required fields on the booking form — your name, doctor, date and time are all needed!";
+    setAriaText(msg); speak(msg);
+    return;
+  }
+
+  // Format date nicely
+  const dateObj = new Date(apptDate + 'T12:00:00');
+  const niceDate = dateObj.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' });
+  const insurance = document.getElementById('insurance').value || 'Self-pay';
+  const ref = 'SC-' + Math.random().toString(36).substr(2,6).toUpperCase();
+
+  document.getElementById('successDetail').innerHTML =
+    `<strong style="color:var(--text-primary)">${fname} ${lname}</strong> · ${ptype === 'new' ? 'New patient' : 'Returning patient'}<br>
+     ${service}<br>
+     ${selectedDoctor}<br>
+     ${niceDate} at ${selectedTime}<br>
+     Insurance: ${insurance}`;
+
+  document.getElementById('successId').innerHTML =
+    `Confirmation ref: <strong>${ref}</strong> · We will call ${phone} to confirm.`;
+
+  document.getElementById('bookingForm').style.display = 'none';
+  document.getElementById('successCard').classList.add('show');
+  document.getElementById('step1tab').className = 'step-tab done';
+  document.getElementById('step2tab').className = 'step-tab done';
+  document.getElementById('step3tab').className = 'step-tab done';
+
+  const confirm = `Perfect! I've booked ${fname} for ${service} with ${selectedDoctor} on ${niceDate} at ${selectedTime}. Your confirmation reference is ${ref}. We will call to confirm. See you soon at SmileCare!`;
+  setAriaText(confirm);
+  speak(confirm);
+}
+
+function resetForm() {
+  document.getElementById('bookingForm').style.display = 'block';
+  document.getElementById('successCard').classList.remove('show');
+  document.getElementById('fname').value = '';
+  document.getElementById('lname').value = '';
+  document.getElementById('phone').value = '';
+  document.getElementById('email').value = '';
+  document.getElementById('ptype').value = '';
+  document.getElementById('insurance').value = '';
+  document.getElementById('service').value = '';
+  document.getElementById('notes').value = '';
+  document.getElementById('apptDate').value = `${yyyy}-${mm}-${dd}`;
+  document.querySelectorAll('.doctor-card').forEach(c => c.classList.remove('selected'));
+  document.querySelectorAll('.time-slot').forEach(s => s.classList.remove('selected'));
+  document.querySelectorAll('.field').forEach(f => f.classList.remove('invalid'));
+  selectedDoctor = ''; selectedTime = '';
+  document.getElementById('step1tab').className = 'step-tab active';
+  document.getElementById('step2tab').className = 'step-tab';
+  document.getElementById('step3tab').className = 'step-tab';
+  setAriaText("Ready to book another appointment! Fill in your details on the right and I'll get you confirmed.");
+}
+
+// Pre-load voices
+if (synth.onvoiceschanged !== undefined) { synth.onvoiceschanged = () => {}; }
+</script>
+</body>
+</html>
